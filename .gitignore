@@ -1,0 +1,13 @@
+# emacs stuff
+*~
+[#]*[#]
+
+# api keys
+src/main/resources/twittercreds.txt
+
+# output
+target/
+
+# intellij
+.idea/
+*.iml
