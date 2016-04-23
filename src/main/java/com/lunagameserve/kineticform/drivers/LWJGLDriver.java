@@ -1,6 +1,7 @@
 package com.lunagameserve.kineticform.drivers;
 
 import com.lunagameserve.kineticform.model.BallGrid;
+import com.lunagameserve.kineticform.output.ArduinoHub;
 import com.lunagameserve.kineticform.twitter.TweetScanner;
 import com.lunagameserve.kineticform.twitter.TwitterCommand;
 import com.lunagameserve.kineticform.twitter.TwitterCommandQueue;
@@ -9,6 +10,7 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
 
+import java.io.IOException;
 import java.nio.FloatBuffer;
 
 import static org.lwjgl.glfw.GLFW.*;
@@ -25,7 +27,9 @@ public class LWJGLDriver {
     public static final int HEIGHT = 480;
 
     private BallGrid grid = new BallGrid(6, 8);
+    private ArduinoHub arduinos = new ArduinoHub();
     private TwitterCommandQueue queue = new TwitterCommandQueue();
+    private TwitterCommandQueue arduinoQueue = new TwitterCommandQueue();
 
     private TweetScanner scanner = new TweetScanner();
 
@@ -47,6 +51,7 @@ public class LWJGLDriver {
             glfwTerminate();
             errorCallback.release();
             scanner.stop();
+            arduinos.stop();
         }
     }
 
@@ -57,6 +62,7 @@ public class LWJGLDriver {
         }
 
         scanner.start();
+        arduinos.connect();
 
         // Configure our window
         glfwDefaultWindowHints();
@@ -126,6 +132,7 @@ public class LWJGLDriver {
             TwitterCommand command = scanner.getNextCommand();
             if (command != null) {
                 queue.insert(command);
+                arduinoQueue.insert(command);
             }
 
             // Make the viewport always fill the whole window.
@@ -156,7 +163,11 @@ public class LWJGLDriver {
 
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            // Render a simple cube
+            try {
+                arduinos.update(arduinoQueue);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
             grid.update(queue, delta);
             grid.gl(-1.5f, 4.5f, -2.0f, 0.5f, 0.5f, 0.5f);
 

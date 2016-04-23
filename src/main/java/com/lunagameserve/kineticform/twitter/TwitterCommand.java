@@ -55,4 +55,8 @@ public enum TwitterCommand {
     public BallPredicate getPredicate() {
         return predicate;
     }
+
+    public boolean isInvokedBy(String newTweet) {
+        return newTweet.toLowerCase().contains('#' + toString().toLowerCase());
+    }
 }

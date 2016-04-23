@@ -6,6 +6,10 @@ import twitter4j.conf.ConfigurationBuilder;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.ArrayDeque;
+import java.util.HashSet;
+import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -13,6 +17,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Created by sixstring982 on 4/2/16.
  */
 public class TweetScanner {
+    private static final int MAX_REMEMBERED_TWEETS = 50;
     private Thread thread;
     private AtomicBoolean running = new AtomicBoolean(false);
     private LinkedBlockingDeque<TwitterCommand> commands = new LinkedBlockingDeque<TwitterCommand>();
@@ -59,41 +64,63 @@ public class TweetScanner {
         return new TwitterFactory(cb.build());
     }
 
+    private String buildQueryString() {
+        StringBuilder sb = new StringBuilder();
+        TwitterCommand[] cs = TwitterCommand.values();
+        for (int i = 0; i < cs.length; i++) {
+            sb.append("#").append(cs[i]);
+            if (i < cs.length - 1) {
+                sb.append(" OR ");
+            }
+        }
+        return sb.toString();
+    }
+
     private final Runnable scanLoop = new Runnable() {
         public void run() {
             Twitter twitter = createFactory().getInstance();
-            TwitterCommand[] comms = TwitterCommand.values();
-            String[] initialTweets = new String[comms.length];
-            for (int i = 0; i < initialTweets.length; i++) {
-                initialTweets[i] = "";
-            }
-            int commandIndex = 0;
+            String queryString = buildQueryString();
+            Queue<String> recentTweets = new ArrayDeque<String>();
+            Set<String> currentTweets;
+            boolean firstRound = true;
             while (running.get()) {
+                Query query = new Query(queryString);
+                query.setResultType(Query.ResultType.recent);
+                try {
+                    QueryResult result = twitter.search(query);
+                    currentTweets = new HashSet<String>();
+                    for (Status status : result.getTweets()) {
+                        currentTweets.add("[" + status.getCreatedAt() + "] " + status.getText());
+                    }
+
+                    /* Which ones are brand new? */
+                    currentTweets.removeAll(recentTweets);
+                    for (String newTweet : currentTweets) {
+                        System.out.println("New tweet: \"" + newTweet + '"');
+                        for (TwitterCommand c : TwitterCommand.values()) {
+                            if (c.isInvokedBy(newTweet)) {
+                                if (!firstRound) {
+                                    commands.add(c);
+                                }
+                            }
+                        }
+                    }
+
+                    recentTweets.addAll(currentTweets);
+                    while (recentTweets.size() > MAX_REMEMBERED_TWEETS) {
+                        recentTweets.remove();
+                    }
+
+                    firstRound = false;
+                } catch (TwitterException e) {
+                    System.err.println("Twitter query failed:");
+                    e.printStackTrace();
+                    return;
+                }
                 try {
                     Thread.sleep(10000);
                 } catch (InterruptedException e) {
                     System.err.println("TweetScanner interrupted.");
-                    return;
-                }
-                Query query = new Query("#" + comms[commandIndex].toString());
-                try {
-                    QueryResult result = twitter.search(query);
-                    String newest = result.getTweets().get(0).getText();
-                    if (!initialTweets[commandIndex].equals(newest)) {
-                        /* New tweet! */
-                        if (initialTweets[commandIndex].length() == 0) {
-                            initialTweets[commandIndex] = newest;
-                            System.out.println("New tweet: \"" + newest + '"');
-                            continue;
-                        }
-                        System.out.println("New tweet: \"" + newest + '"');
-                        commands.add(comms[commandIndex]);
-                        initialTweets[commandIndex] = newest;
-                    }
-                    commandIndex = (commandIndex + 1) % comms.length;
-                } catch (TwitterException e) {
-                    System.err.println("Twitter query failed:");
-                    e.printStackTrace();
                     return;
                 }
             }
