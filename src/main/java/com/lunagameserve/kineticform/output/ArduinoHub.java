@@ -2,9 +2,13 @@ package com.lunagameserve.kineticform.output;
 
 import com.lunagameserve.kineticform.twitter.TwitterCommand;
 import com.lunagameserve.kineticform.twitter.TwitterCommandQueue;
+import gnu.io.CommPort;
+import gnu.io.CommPortIdentifier;
+import gnu.io.PortInUseException;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Enumeration;
 
 /**
  * Created by sixstring982 on 4/23/16.
@@ -13,7 +17,7 @@ public class ArduinoHub {
     private static final int WIDTH = 8;
     private static final int HEIGHT = 6;
     private static final String[] PORT_NAMES = new String[] {
-            "/dev/ttyACM0", "/dev/ttyACM1", "/dev/ttyACM2"
+            "/dev/ttyACM0"
     };
 
     /* A01234567
@@ -27,8 +31,31 @@ public class ArduinoHub {
     private OutputStream[] outputs = new OutputStream[PORT_NAMES.length];
 
     public void connect() {
-        for (int i = 0; i < outputs.length; i++) {
-            outputs[i] = new FalseArduino(i);
+        int ports = 0;
+        for (String portName : PORT_NAMES) {
+            System.setProperty("gnu.io.rxtx.SerialPorts", portName);
+            CommPortIdentifier i;
+            Enumeration e = CommPortIdentifier.getPortIdentifiers();
+            while (e.hasMoreElements()) {
+                i = (CommPortIdentifier)e.nextElement();
+                if (i.getName().equals(portName)) {
+                    try {
+                        CommPort port = i.open("KineticForm", 1000);
+                        outputs[ports++] = port.getOutputStream();
+                    } catch (PortInUseException ex) {
+                        throw new RuntimeException(ex);
+                    } catch (IOException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                }
+            }
+        }
+        if (ports != PORT_NAMES.length) {
+            throw new RuntimeException(
+                    String.format(
+                            "Could only open %d Arduinos!", ports
+                    )
+            );
         }
     }
 
@@ -47,11 +74,13 @@ public class ArduinoHub {
                     int outIdx = y / 2;
                     int idx = (y % 2) * WIDTH + x;
 
-                    writtenTo[outIdx] = true;
-                    outputs[outIdx].write(new byte[]{
-                            (byte) idx,
-                            (byte) delta
-                    });
+                    if (outIdx < outputs.length) {
+                        writtenTo[outIdx] = true;
+                        outputs[outIdx].write(new byte[]{
+                                (byte) idx,
+                                (byte) delta
+                        });
+                    }
                 }
             }
         }
