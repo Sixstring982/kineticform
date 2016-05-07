@@ -1,11 +1,12 @@
 package com.lunagameserve.kineticform.drivers;
 
-import com.lunagameserve.kineticform.output.ArduinoHub;
+import com.lunagameserve.kineticform.output.*;
 import com.lunagameserve.kineticform.twitter.TweetScanner;
 import com.lunagameserve.kineticform.twitter.TwitterCommand;
 import com.lunagameserve.kineticform.twitter.TwitterCommandQueue;
 
 import java.io.IOException;
+import java.io.PrintStream;
 
 /**
  * Created by sixstring982 on 5/4/16.
@@ -14,8 +15,10 @@ public class ArduinoDriver {
 
     public void run() throws IOException, InterruptedException {
         TwitterCommandQueue queue = new TwitterCommandQueue();
-        ArduinoHub hub = new ArduinoHub();
+        ArduinoHub hub = new StdoutArduinoHub();
         TweetScanner scanner = new TweetScanner();
+        Log.setLevel(LogLevel.INFO);
+        Log.setTarget(new PrintStream("kinetic-form.log"));
         TwitterCommand command;
         boolean running = true;
 

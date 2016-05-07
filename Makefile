@@ -12,6 +12,9 @@ PACKAGE:=$(PACKAGEDIR)/$(PROJNAME)-$(PROJVERSION).zip
 
 all:	$(PACKAGEDIR) $(PACKAGE)
 
+deploy:	all
+	scp $(PACKAGE) 'pi@10.0.0.3:~/kineticform/'
+
 $(PACKAGE):	$(JAR) $(SCRIPTS) $(LIBDIR)
 	zip -r $@ $^
 

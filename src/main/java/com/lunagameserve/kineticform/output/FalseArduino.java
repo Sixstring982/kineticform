@@ -15,6 +15,6 @@ public class FalseArduino extends OutputStream {
 
     @Override
     public void write(int b) throws IOException {
-        System.out.println(String.format("[Arduino %2d]: %x", id, b));
+        Log.d(String.format("[Arduino %2d]: %x", id, b));
     }
 }

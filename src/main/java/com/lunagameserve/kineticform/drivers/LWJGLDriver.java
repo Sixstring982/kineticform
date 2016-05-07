@@ -1,7 +1,7 @@
 package com.lunagameserve.kineticform.drivers;
 
 import com.lunagameserve.kineticform.model.BallGrid;
-import com.lunagameserve.kineticform.output.ArduinoHub;
+import com.lunagameserve.kineticform.output.RXTXArduinoHub;
 import com.lunagameserve.kineticform.twitter.TweetScanner;
 import com.lunagameserve.kineticform.twitter.TwitterCommand;
 import com.lunagameserve.kineticform.twitter.TwitterCommandQueue;
@@ -27,7 +27,7 @@ public class LWJGLDriver {
     public static final int HEIGHT = 480;
 
     private BallGrid grid = new BallGrid(6, 8);
-    private ArduinoHub arduinos = new ArduinoHub();
+    private RXTXArduinoHub arduinos = new RXTXArduinoHub();
     private TwitterCommandQueue queue = new TwitterCommandQueue();
     private TwitterCommandQueue arduinoQueue = new TwitterCommandQueue();
 

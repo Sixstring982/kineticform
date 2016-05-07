@@ -1,5 +1,6 @@
 package com.lunagameserve.kineticform.twitter;
 
+import com.lunagameserve.kineticform.output.Log;
 import twitter4j.*;
 import twitter4j.conf.ConfigurationBuilder;
 
@@ -58,7 +59,7 @@ public class TweetScanner {
             cb.setOAuthAccessToken(reader.readLine().trim());
             cb.setOAuthAccessTokenSecret(reader.readLine().trim());
         } catch (IOException e) {
-            System.err.println("Can't load twitter configuration.");
+            Log.e("Can't load twitter configuration.");
             throw new RuntimeException(e);
         }
         return new TwitterFactory(cb.build());
@@ -96,7 +97,7 @@ public class TweetScanner {
                     /* Which ones are brand new? */
                     currentTweets.removeAll(recentTweets);
                     for (String newTweet : currentTweets) {
-                        System.out.println("New tweet: \"" + newTweet + '"');
+                        Log.i("New tweet: \"" + newTweet + '"');
                         for (TwitterCommand c : TwitterCommand.values()) {
                             if (c.isInvokedBy(newTweet)) {
                                 if (!firstRound) {
@@ -113,14 +114,14 @@ public class TweetScanner {
 
                     firstRound = false;
                 } catch (TwitterException e) {
-                    System.err.println("Twitter query failed:");
+                    Log.e("Twitter query failed:");
                     e.printStackTrace();
                     return;
                 }
                 try {
                     Thread.sleep(10000);
                 } catch (InterruptedException e) {
-                    System.err.println("TweetScanner interrupted.");
+                    Log.e("TweetScanner interrupted.");
                     return;
                 }
             }
